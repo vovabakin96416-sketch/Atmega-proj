@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import { Circuit } from "tscircuit"
 import TemplateBoard from "./board"
@@ -145,5 +146,84 @@ describe("WS2811 ESP32-C3 controller schematic", () => {
         ["GND", 3],
       ]),
     )
+  }, 15_000)
+
+  it("locks the reviewed TLV760, TPS2113A and ESP32-C3 physical pins", async () => {
+    const circuit = new Circuit()
+    circuit.add(<TemplateBoard />)
+    await circuit.renderUntilSettled()
+
+    const elements = circuit.getCircuitJson() as CircuitElement[]
+    const pinsFor = (mpn: string) => {
+      const component = elements.find(
+        (element) =>
+          element.type === "source_component" &&
+          element.manufacturer_part_number === mpn,
+      )
+      expect(component, `${mpn} is missing`).toBeDefined()
+      return new Map(
+        elements
+          .filter(
+            (element) =>
+              element.type === "source_port" &&
+              element.source_component_id === component?.source_component_id,
+          )
+          .map((element) => [element.name, element.pin_number]),
+      )
+    }
+
+    expect(pinsFor("TLV76050DBZR")).toEqual(
+      new Map([
+        ["VOUT", 1],
+        ["VIN", 2],
+        ["GND", 3],
+      ]),
+    )
+    expect(pinsFor("TPS2113APWR")).toEqual(
+      new Map([
+        ["STAT", 1],
+        ["EN", 2],
+        ["VSNS", 3],
+        ["ILIM", 4],
+        ["GND", 5],
+        ["IN2", 6],
+        ["OUT", 7],
+        ["IN1", 8],
+      ]),
+    )
+
+    const espPins = pinsFor("ESP32-C3-MINI-1-N4X")
+    expect(espPins.get("V3P3")).toBe(3)
+    expect(espPins.get("EN")).toBe(8)
+    expect(espPins.get("IO2")).toBe(5)
+    expect(espPins.get("IO8")).toBe(22)
+    expect(espPins.get("IO9")).toBe(23)
+    expect(espPins.get("IO18_USB_DM")).toBe(26)
+    expect(espPins.get("IO19_USB_DP")).toBe(27)
+    expect(espPins.get("RXD0_IO20")).toBe(30)
+    expect(espPins.get("TXD0_IO21")).toBe(31)
+  }, 15_000)
+
+  it("uses the reviewed protection and buffer-supply parts", async () => {
+    const circuit = new Circuit()
+    circuit.add(<TemplateBoard />)
+    await circuit.renderUntilSettled()
+
+    const elements = circuit.getCircuitJson() as CircuitElement[]
+    const mpns = new Set(
+      elements.map((element) => element.manufacturer_part_number),
+    )
+    const names = new Set(elements.map((element) => element.name))
+
+    const boardSource = readFileSync(
+      new URL("./board.tsx", import.meta.url),
+      "utf8",
+    )
+    expect(boardSource).toContain('manufacturerPartNumber="0451007.MRL"')
+    expect(mpns).toContain("MMSZ5242B-7-F")
+    expect(mpns).toContain("SS34-E3/57T")
+    expect(mpns).toContain("TPS2113APWR")
+    expect(names).not.toContain("D5")
+    expect(names).not.toContain("D6")
   }, 15_000)
 })

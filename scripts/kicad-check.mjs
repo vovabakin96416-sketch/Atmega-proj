@@ -4,11 +4,18 @@ import path from "node:path"
 import { spawnSync } from "node:child_process"
 
 const command = process.argv[2]
-const allowedCommands = new Set(["erc", "erc-all", "drc", "drc-all", "render"])
+const allowedCommands = new Set([
+  "erc",
+  "erc-all",
+  "drc",
+  "drc-all",
+  "schematic-pdf",
+  "render",
+])
 
 if (!allowedCommands.has(command)) {
   console.error(
-    "Usage: node scripts/kicad-check.mjs <erc|erc-all|drc|drc-all|render>",
+    "Usage: node scripts/kicad-check.mjs <erc|erc-all|drc|drc-all|schematic-pdf|render>",
   )
   process.exit(2)
 }
@@ -22,8 +29,10 @@ if (!existsSync(manifestPath)) {
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"))
 const reportsDirectory = path.resolve("build", "reports")
 const rendersDirectory = path.resolve("build", "renders")
+const pdfDirectory = path.resolve("output", "pdf")
 await mkdir(reportsDirectory, { recursive: true })
 await mkdir(rendersDirectory, { recursive: true })
+await mkdir(pdfDirectory, { recursive: true })
 
 const configuredCli = process.env.KICAD_CLI
 const installedCli = String.raw`D:\KiCad\bin\kicad-cli.exe`
@@ -72,6 +81,14 @@ const actions = {
     "--output",
     path.join(reportsDirectory, "drc-all.json"),
     manifest.outputs.pcb,
+  ],
+  "schematic-pdf": [
+    "sch",
+    "export",
+    "pdf",
+    "--output",
+    path.join(pdfDirectory, `${manifest.projectName}-schematic.pdf`),
+    manifest.outputs.schematic,
   ],
   render: [
     "pcb",

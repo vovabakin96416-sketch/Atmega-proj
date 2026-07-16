@@ -17,6 +17,7 @@
     "erc": "node scripts/kicad-check.mjs erc",
     "drc": "node scripts/kicad-check.mjs drc",
     "audit": "node scripts/kicad-check.mjs erc-all && node scripts/kicad-check.mjs drc-all",
+    "schematic-pdf": "node scripts/kicad-check.mjs schematic-pdf",
     "render": "node scripts/kicad-check.mjs render",
     "verify": "npm run lint && npm test && npm run generate && npm run erc && npm run drc && npm run audit && npm run render"
   },

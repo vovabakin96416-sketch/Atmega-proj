@@ -1,0 +1,39 @@
+{
+  "name": "pcb-code-template",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "tsci dev src/board.tsx",
+    "generate": "tsx src/generate.tsx",
+    "typecheck": "tsc --noEmit",
+    "lint": "npm run typecheck && eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "build": "npm run generate",
+    "erc": "node scripts/kicad-check.mjs erc",
+    "drc": "node scripts/kicad-check.mjs drc",
+    "audit": "node scripts/kicad-check.mjs erc-all && node scripts/kicad-check.mjs drc-all",
+    "schematic-pdf": "node scripts/kicad-check.mjs schematic-pdf",
+    "render": "node scripts/kicad-check.mjs render",
+    "verify": "npm run lint && npm test && npm run generate && npm run erc && npm run drc && npm run audit && npm run render"
+  },
+  "dependencies": {
+    "circuit-json-to-kicad": "0.0.163",
+    "polygon-clipping": "0.15.7",
+    "tscircuit": "0.0.2097"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.13.3",
+    "eslint": "10.7.0",
+    "prettier": "3.9.5",
+    "tsx": "4.23.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.64.0",
+    "vitest": "4.1.10"
+  }
+}

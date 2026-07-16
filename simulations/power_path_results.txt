@@ -1,0 +1,51 @@
+stderr Warning: can't find the initialization file spinit.
+stdout ******
+stdout ** ngspice-46 shared library
+stdout ** Creation Date: Apr 14 2026   05:15:29
+stdout ******
+stdout Note: No compatibility mode selected!
+stdout Circuit: * first-order pre-order model of the protected 12 v, diode or-ing and logic rails.
+Prepare Deck
+Parse
+stdout Doing analysis at TEMP = 27.000000 and TNOM = 27.000000
+Device Setup
+stdout Using SPARSE 1.3 as Direct Linear Solver
+op
+stdout Initial Transient Solution
+stdout --------------------------
+stdout Node                                   Voltage
+stdout ----                                   -------
+stdout source12                                     0
+stdout vin_raw                           -7.90993e-49
+stdout vin_fused                         -9.84786e-49
+stdout v12_protected                      6.33104e-47
+stdout usb_source                                   0
+stdout usb_vbus                                     0
+stdout logic_input                        1.13893e-18
+stdout buck_raw                                     0
+stdout v3p3                                   -0.0016
+stdout v5ldo_raw                                    0
+stdout v5_ldo                                       0
+stdout v5mux_raw                                    0
+stdout v5_buffer                           -0.0004125
+stdout bmux_raw#branch                       -0.00275
+stdout bldo_raw#branch                              0
+stdout bbuck_raw#branch                         -0.02
+stdout vusb#branch                                  0
+stdout v12#branch                        -3.95496e-47
+tran init
+tran
+--ready--
+stdout No. of Data Rows : 5106
+meas
+stdout Measurements for Transient Analysis
+stdout v3_min_usb          =  3.26000e+00 at=  8.49784e-03
+stdout v5_min_usb          =  4.93651e+00 at=  7.50284e-03
+stdout v5_min_12v          =  4.74959e+00 at=  1.59991e-02
+stdout reverse_rail_max    =  -2.53824e-12 at=  6.02500e-04
+stdout reverse_input_current_max=  1.29603e-11 at=  1.89750e-03
+stdout tvs_clamp_max       =  1.78736e+01 at=  2.01979e-02
+stdout logic_input_min_usb =  4.28859e+00 at=  7.50284e-03
+stdout protected_full_load =  1.16772e+01
+stdout protected_at_7m     =  2.97963e+00
+stdout protected_at_8m     =  7.88433e-01

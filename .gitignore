@@ -1,0 +1,7 @@
+node_modules/
+build/
+output/
+.env
+*.log
+*.kicad_prl
+*-backups/

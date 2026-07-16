@@ -2,12 +2,13 @@
 * Semiconductor macromodels are deliberately conservative approximations; see README.md.
 
 V12 source12 0 PWL(0 0 0.5m 0 0.51m -12 2m -12 2.01m 12 6m 12 6.01m 0 9m 0 9.01m 12 25m 12)
-Rsource12 source12 vin_raw 0.1
-Rfuse vin_raw vin_fused 0.009
-* Ideal-diode approximation of the correctly oriented P-channel MOSFET. The
-* series resistance is its conservative hot RDS(on); reverse leakage is idealized.
+Rsource12 source12 vin_raw 0.02
+Rfuse vin_raw vin_fused 0.0049
+* Ideal-diode approximation of the two correctly oriented parallel P-channel
+* MOSFETs. RS is 24 mOhm per hot device divided by two; reverse leakage and
+* current-sharing imbalance are idealized.
 Dreverse vin_fused v12_protected reverse_mosfet_approx
-.model reverse_mosfet_approx D(IS=1p N=0.05 RS=0.0176)
+.model reverse_mosfet_approx D(IS=1p N=0.05 RS=0.012)
 
 * SMBJ15A stand-in: 17.5 V breakdown, series resistance chosen to approach the
 * datasheet clamping region without claiming surge-energy correlation.
@@ -15,15 +16,18 @@ Dtv 0 v12_protected smbj15a_approx
 .model smbj15a_approx D(BV=17.5 IBV=1m RS=0.35 CJO=1n)
 Cbulk v12_protected 0 470u IC=0
 Cdec12 v12_protected 0 100n
-Istrip v12_protected 0 PWL(0 0 3m 0 3.01m 3.6 8.5m 3.6 8.51m 0 25m 0)
+Rstrip v12_protected 0 1.6
 Isurge 0 v12_protected PULSE(0 25 20m 1u 1u 200u 1)
 
 Vusb usb_source 0 PWL(0 0 4m 0 4.01m 5 9m 5 9.01m 0 25m 0)
 Rusb usb_source usb_vbus 0.15
-D12 v12_protected logic_input ss34_approx
-Dusb usb_vbus logic_input ss34_approx
-.model ss34_approx D(IS=20u N=1.08 RS=0.055 CJO=200p BV=40 IBV=100u)
-Cinput logic_input 0 10u
+D12 v12_protected logic_input rb058_approx
+Dusb usb_vbus logic_input rb058_approx
+* RB058LAM-40 conservative forward-drop approximation. The model uses very
+* small sub-breakdown leakage; it is not a temperature-correlated vendor model.
+.model rb058_approx D(IS=1n N=1.2 RS=0.08 CJO=80p BV=40 IBV=2.5u)
+Rvbus usb_vbus 0 470
+Cinput logic_input 0 20u
 Ilogic logic_input 0 PWL(0 0 2.1m 0 2.11m 0.41 25m 0.41)
 
 * Averaged power-stage model. It verifies source handover and rail sequencing,
@@ -41,7 +45,7 @@ Cldo v5_ldo 0 1u
 Bmux_raw v5mux_raw 0 V=max(V(v5_ldo),V(usb_vbus))
 Rmux v5mux_raw v5_buffer 0.15
 Cbuffer v5_buffer 0 1.1u
-Ibuffer v5_buffer 0 2.25m
+Ibuffer v5_buffer 0 2.75m
 
 .tran 5u 25m
 .measure tran v3_min_usb MIN V(v3p3) FROM=7.5m TO=8.5m
@@ -51,6 +55,7 @@ Ibuffer v5_buffer 0 2.25m
 .measure tran reverse_input_current_max MAX I(V12) FROM=0.6m TO=1.9m
 .measure tran tvs_clamp_max MAX V(v12_protected) FROM=20m TO=20.2m
 .measure tran logic_input_min_usb MIN V(logic_input) FROM=7.5m TO=8.5m
+.measure tran protected_full_load FIND V(v12_protected) AT=5m
 .measure tran protected_at_7m FIND V(v12_protected) AT=7m
 .measure tran protected_at_8m FIND V(v12_protected) AT=8m
 .end

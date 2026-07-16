@@ -34,14 +34,22 @@ describe("equivalent digital/RC model for bring-up-critical logic", () => {
     expect(logic.encoderTauUs).toBeLessThan(2_000)
   })
 
-  it("keeps the output buffer disabled until firmware explicitly enables it", () => {
-    const output = (reset: boolean, bufferEnable: boolean, data: 0 | 1) =>
-      reset || !bufferEnable ? "Z" : data
+  it("keeps strip DATA low until firmware explicitly enables the buffer", () => {
+    const bufferOutput = (
+      reset: boolean,
+      bufferEnable: boolean,
+      data: 0 | 1,
+    ) => (reset || !bufferEnable ? "Z" : data)
+    const stripData = (reset: boolean, bufferEnable: boolean, data: 0 | 1) => {
+      const output = bufferOutput(reset, bufferEnable, data)
+      return output === "Z" ? 0 : output
+    }
 
-    expect(output(true, false, 1)).toBe("Z")
-    expect(output(false, false, 1)).toBe("Z")
-    expect(output(false, true, 0)).toBe(0)
-    expect(output(false, true, 1)).toBe(1)
+    expect(bufferOutput(true, false, 1)).toBe("Z")
+    expect(stripData(true, false, 1)).toBe(0)
+    expect(stripData(false, false, 1)).toBe(0)
+    expect(stripData(false, true, 0)).toBe(0)
+    expect(stripData(false, true, 1)).toBe(1)
   })
 
   it("has compatible WS2811 timing and worst-case DC-high margins", () => {

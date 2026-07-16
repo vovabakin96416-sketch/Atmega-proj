@@ -1,5 +1,12 @@
 import { sel as tscSel } from "tscircuit"
 
+const pinSel = tscSel as unknown as Record<string, Record<string, string>>
+const pinSelector = (component: string, pin: number) => {
+  const selector = pinSel[component]?.[`pin${pin}`]
+  if (!selector) throw new Error(`Selector ${component}.pin${pin} is missing`)
+  return selector
+}
+
 type CustomNet =
   | "VIN_12V_RAW"
   | "VIN_12V_FUSED"
@@ -160,7 +167,7 @@ export default function Ws2811Controller() {
         />
         <schematictext
           {...at(-8, 3.5)}
-          text="7 A fuse, reverse-polarity MOSFET and 15 V unidirectional TVS."
+          text="F1 0451012.MRL 12 A; Q1/Q3 DMP4015SSS-13; D1 MMSZ5242B; D2 SMBJ15A."
           fontSize={0.65}
           anchor="left"
         />
@@ -177,9 +184,10 @@ export default function Ws2811Controller() {
         <fuse
           {...at(-5.5, 1.5)}
           name="F1"
-          manufacturerPartNumber="0451007.MRL"
-          datasheetUrl="https://www.littelfuse.com/products/fuses-overcurrent-protection/fuses/surface-mount-fuses/nano-2-fuses/451/0451007"
-          currentRating="7A"
+          displayName="0451012.MRL 12A"
+          manufacturerPartNumber="0451012.MRL"
+          datasheetUrl="https://www.littelfuse.com/products/fuses-overcurrent-protection/fuses/surface-mount-fuses/nano-2-fuses/451/0451012"
+          currentRating="12A"
           footprint="kicad:Fuse/Fuse_Littelfuse-NANO2-451_453"
           connections={{
             pin1: sel.net.VIN_12V_RAW,
@@ -189,6 +197,38 @@ export default function Ws2811Controller() {
         <chip
           {...at(-2, 1.5)}
           name="Q1"
+          manufacturerPartNumber="DMP4015SSS-13"
+          datasheetUrl="https://www.diodes.com/datasheet/download/DMP4015SSS.pdf"
+          footprint="soic8"
+          schPinArrangement={{
+            leftSide: ["D1", "D2", "D3", "D4"],
+            rightSide: ["S1", "S2", "S3"],
+            bottomSide: ["G"],
+          }}
+          pinLabels={{
+            pin1: "S1",
+            pin2: "S2",
+            pin3: "S3",
+            pin4: "G",
+            pin5: "D1",
+            pin6: "D2",
+            pin7: "D3",
+            pin8: "D4",
+          }}
+          connections={{
+            S1: sel.net.V12_PROTECTED,
+            S2: sel.net.V12_PROTECTED,
+            S3: sel.net.V12_PROTECTED,
+            G: sel.net.Q1_GATE,
+            D1: sel.net.VIN_12V_FUSED,
+            D2: sel.net.VIN_12V_FUSED,
+            D3: sel.net.VIN_12V_FUSED,
+            D4: sel.net.VIN_12V_FUSED,
+          }}
+        />
+        <chip
+          {...at(1.5, 1.5)}
+          name="Q3"
           manufacturerPartNumber="DMP4015SSS-13"
           datasheetUrl="https://www.diodes.com/datasheet/download/DMP4015SSS.pdf"
           footprint="soic8"
@@ -230,6 +270,7 @@ export default function Ws2811Controller() {
         <diode
           {...at(0, -1, 90)}
           name="D1"
+          displayName="MMSZ5242B 12V"
           manufacturerPartNumber="MMSZ5242B-7-F"
           datasheetUrl="https://www.diodes.com/assets/Datasheets/ds18010.pdf"
           variant="zener"
@@ -242,11 +283,35 @@ export default function Ws2811Controller() {
         <diode
           {...at(2.5, -1, 90)}
           name="D2"
+          displayName="SMBJ15A"
           manufacturerPartNumber="SMBJ15A"
           datasheetUrl="https://www.littelfuse.com/assetdocs/littelfuse-tvs-diode-smbj-datasheet?assetguid=3a4f178d-d52c-42e0-8b55-654288f779f2"
           variant="tvs"
           footprint="smb"
           connections={{ anode: sel.net.GND, cathode: sel.net.V12_PROTECTED }}
+        />
+        {/* Each parallel MOSFET is a separate local schematic island. Explicit
+            labels preserve the intended common drain, source and gate nets in
+            the exported KiCad netlist. */}
+        <netlabel
+          net="VIN_12V_FUSED"
+          connectsTo={pinSelector("Q1", 5)}
+          anchorSide="top"
+        />
+        <netlabel
+          net="VIN_12V_FUSED"
+          connectsTo={pinSelector("Q3", 5)}
+          anchorSide="top"
+        />
+        <netlabel
+          net="V12_PROTECTED"
+          connectsTo={pinSelector("Q1", 1)}
+          anchorSide="top"
+        />
+        <netlabel
+          net="Q1_GATE"
+          connectsTo={pinSelector("Q1", 4)}
+          anchorSide="left"
         />
         <capacitor
           {...at(4.5, -1, 90)}
@@ -274,10 +339,11 @@ export default function Ws2811Controller() {
         <diode
           {...at(-1.5, -3)}
           name="D3"
-          manufacturerPartNumber="SS34-E3/57T"
-          datasheetUrl="https://www.vishay.com/docs/88751/ss32.pdf"
+          displayName="RB058LAM-40"
+          manufacturerPartNumber="RB058LAM-40TR"
+          datasheetUrl="https://www.rohm.com/products/diodes/schottky-barrier-diodes/ultra-low-ir/rb058lam-40-product"
           variant="schottky"
-          footprint="sma"
+          footprint="sod128"
           connections={{
             anode: sel.net.V12_PROTECTED,
             cathode: sel.net.LOGIC_INPUT,
@@ -286,14 +352,24 @@ export default function Ws2811Controller() {
         <diode
           {...at(2, -3)}
           name="D4"
-          manufacturerPartNumber="SS34-E3/57T"
-          datasheetUrl="https://www.vishay.com/docs/88751/ss32.pdf"
+          displayName="RB058LAM-40"
+          manufacturerPartNumber="RB058LAM-40TR"
+          datasheetUrl="https://www.rohm.com/products/diodes/schottky-barrier-diodes/ultra-low-ir/rb058lam-40-product"
           variant="schottky"
-          footprint="sma"
+          footprint="sod128"
           connections={{
             anode: sel.net.USB_VBUS,
             cathode: sel.net.LOGIC_INPUT,
           }}
+        />
+        {/* tscircuit can keep this named net electrically correct in Circuit JSON
+            while omitting the inter-group label in KiCad. Anchor an explicit
+            label to the common D3/D4 cathode so the exported schematic/netlist
+            remains connected to U1 VIN/EN and C3/C18. */}
+        <netlabel
+          net="LOGIC_INPUT"
+          connectsTo={tscSel.D3.pin2}
+          anchorSide="top"
         />
       </group>
 
@@ -306,7 +382,7 @@ export default function Ws2811Controller() {
         />
         <schematictext
           {...at(-8, 3.5)}
-          text="Input: protected 12 V or USB VBUS through diode OR-ing."
+          text="Input: protected 12 V or USB VBUS through D3/D4 RB058LAM-40TR."
           fontSize={0.65}
           anchor="left"
         />
@@ -352,6 +428,16 @@ export default function Ws2811Controller() {
           connections={{ pin1: sel.net.LOGIC_INPUT, pin2: sel.net.GND }}
         />
         <capacitor
+          {...at(-3, -1.5, 90)}
+          name="C18"
+          capacitance="10uF"
+          manufacturerPartNumber="GRM32ER71H106KA12L"
+          datasheetUrl="https://www.murata.com/en-us/products/productdetail?partno=GRM32ER71H106KA12L"
+          maxVoltageRating="50V"
+          footprint="1210"
+          connections={{ pin1: sel.net.LOGIC_INPUT, pin2: sel.net.GND }}
+        />
+        <capacitor
           {...at(2.5, 2.5, 90)}
           name="C4"
           capacitance="100nF"
@@ -361,6 +447,7 @@ export default function Ws2811Controller() {
           footprint="0603"
           connections={{ pin1: sel.net.BUCK_BST, pin2: sel.net.BUCK_SW }}
         />
+        <netlabel net="BUCK_BST" connectsTo={tscSel.C4.pin1} anchorSide="top" />
         <chip
           {...at(4.5, 0.5)}
           name="L1"
@@ -392,9 +479,11 @@ export default function Ws2811Controller() {
           footprint="1206"
           connections={{ pin1: sel.net.V3P3, pin2: sel.net.GND }}
         />
+        <netlabel net="V3P3" connectsTo={tscSel.C5.pin1} anchorSide="top" />
+        <netlabel net="GND" connectsTo={tscSel.C5.pin2} anchorSide="bottom" />
       </group>
 
-      <group name="Power5VBlock" schX={-5} schY={10}>
+      <group name="Power5VBlock" schX={-3.5} schY={10}>
         <schematictext
           {...at(-3.5, 4.5)}
           text="5 V DATA-BUFFER SUPPLY"
@@ -446,6 +535,8 @@ export default function Ws2811Controller() {
           footprint="0603"
           connections={{ pin1: sel.net.V5_LDO, pin2: sel.net.GND }}
         />
+        <netlabel net="V5_LDO" connectsTo={tscSel.U3.pin1} anchorSide="top" />
+        <netlabel net="GND" connectsTo={tscSel.C7.pin2} anchorSide="bottom" />
         <chip
           {...at(4, 0)}
           name="U6"
@@ -653,6 +744,8 @@ export default function Ws2811Controller() {
           footprint="0603"
           connections={{ pin1: sel.net.V3P3_ESP, pin2: sel.net.STRAP_IO8 }}
         />
+        <netlabel net="V3P3_ESP" connectsTo={tscSel.R3.pin1} anchorSide="top" />
+        <netlabel net="GND" connectsTo={tscSel.C9.pin2} anchorSide="bottom" />
         <resistor
           {...at(0, -4.25, 90)}
           name="R5"
@@ -768,6 +861,18 @@ export default function Ws2811Controller() {
           footprint="0603"
           connections={{ pin1: sel.net.USB_CC2, pin2: sel.net.GND }}
         />
+        {/* Ultra-low-leakage D4 plus this discharge path keeps an unplugged
+            USB VBUS from floating upward when the 12 V rail is active. */}
+        <resistor
+          {...at(2, -2, 90)}
+          name="R20"
+          resistance="470"
+          manufacturerPartNumber="RC0805FR-07470RL"
+          datasheetUrl="https://www.yageo.com/upload/media/product/productsearch/datasheet/rchip/PYu-RC_Group_51_RoHS_L_15.pdf"
+          footprint="0805"
+          connections={{ pin1: sel.net.USB_VBUS, pin2: sel.net.GND }}
+        />
+        <netlabel net="GND" connectsTo={tscSel.R20.pin2} anchorSide="bottom" />
         <chip
           {...at(1, 0)}
           name="U4"
@@ -923,7 +1028,7 @@ export default function Ws2811Controller() {
         />
         <schematictext
           {...at(1, 2.5)}
-          text="12 V strip: +12V / DATA / GND; output disabled during reset."
+          text="J2: +12V/DATA/GND; U5 SN74AHCT1G125; D7 PESD5V0S1BA; reset DATA low."
           fontSize={0.65}
           anchor="left"
         />
@@ -1025,11 +1130,28 @@ export default function Ws2811Controller() {
         <diode
           {...at(5, -2.75, 90)}
           name="D7"
+          displayName="PESD5V0S1BA"
           manufacturerPartNumber="PESD5V0S1BA,115"
           datasheetUrl="https://assets.nexperia.com/documents/data-sheet/PESD5V0S1BA.pdf"
           variant="tvs"
           footprint="sod323"
           connections={{ anode: sel.net.GND, cathode: sel.net.LED_DATA_OUT }}
+        />
+        <netlabel
+          net="LED_DATA_OUT"
+          connectsTo={tscSel.R16.pin2}
+          anchorSide="top"
+        />
+        {/* The AHCT output is high-impedance during reset; hold the external
+            WS2811 input low so the cable cannot float and create false bits. */}
+        <resistor
+          {...at(7, -2.75, 90)}
+          name="R21"
+          resistance="10k"
+          manufacturerPartNumber="RC0603FR-0710KL"
+          datasheetUrl="https://www.yageo.com/upload/media/product/productsearch/datasheet/rchip/PYu-RC_Group_51_RoHS_L_15.pdf"
+          footprint="0603"
+          connections={{ pin1: sel.net.LED_DATA_OUT, pin2: sel.net.GND }}
         />
 
         {/* Strip output and service header. */}

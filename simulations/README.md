@@ -9,15 +9,17 @@ C:\Users\bakin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\p
 ```
 
 `power_path.cir` is an ngspice transient model covering 12 V startup, reverse
-polarity, USB takeover, Schottky OR-ing, the averaged 3.3 V rail, the 5 V LDO,
-the TPS2113A mux and an illustrative overvoltage pulse. The committed result log
-is produced by KiCad 10's bundled ngspice library.
+polarity, USB takeover, low-leakage Schottky OR-ing, USB VBUS discharge, the averaged 3.3 V rail, the 5 V LDO,
+the TPS2113A mux, the 7.5 A worst-case strip load, two parallel hot MOSFETs and
+an illustrative overvoltage pulse. The committed result log is produced by
+KiCad 10's bundled ngspice library.
 
 The AP63203 and TPS2113A are behavioral/averaged models because manufacturer
-encrypted or validated public macromodels were not used. The SS34 and SMBJ15A
+encrypted or validated public macromodels were not used. The RB058LAM-40 and SMBJ15A
 models are conservative first-order substitutes. Consequently this run cannot
 validate loop stability, EMI, inductor saturation, TVS surge energy, hot-plug
-ringing, USB compliance, temperature rise or layout parasitics.
+ringing, USB compliance, temperature rise, MOSFET current sharing or layout
+parasitics.
 
 ## Logic equivalent
 

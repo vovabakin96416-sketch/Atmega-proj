@@ -114,4 +114,104 @@ if (result.error) {
   process.exit(2)
 }
 
+if (command === "erc" && result.status === 0) {
+  const netlistPath = path.join(reportsDirectory, "connectivity.net")
+  const netlistResult = spawnSync(
+    kicadCli,
+    [
+      "sch",
+      "export",
+      "netlist",
+      "--output",
+      netlistPath,
+      manifest.outputs.schematic,
+    ],
+    {
+      encoding: "utf8",
+      stdio: "inherit",
+    },
+  )
+  if (netlistResult.error || netlistResult.status !== 0) {
+    console.error(
+      netlistResult.error?.message ??
+        "KiCad connectivity netlist export failed",
+    )
+    process.exit(2)
+  }
+
+  const circuitJson = JSON.parse(
+    await readFile(path.resolve("build", "circuit.json"), "utf8"),
+  )
+  const componentNames = new Map(
+    circuitJson
+      .filter((element) => element.type === "source_component")
+      .map((component) => [component.source_component_id, component.name]),
+  )
+  const netNamesByKey = new Map(
+    circuitJson
+      .filter((element) => element.type === "source_net")
+      .map((net) => [net.subcircuit_connectivity_map_key, net.name]),
+  )
+  const expectedNets = new Map(
+    [...netNamesByKey.values()].map((name) => [name, new Set()]),
+  )
+  for (const port of circuitJson.filter(
+    (element) => element.type === "source_port",
+  )) {
+    const netName = netNamesByKey.get(port.subcircuit_connectivity_map_key)
+    const componentName = componentNames.get(port.source_component_id)
+    if (netName && componentName) {
+      expectedNets.get(netName).add(`${componentName}.${port.pin_number}`)
+    }
+  }
+
+  const netlist = await readFile(netlistPath, "utf8")
+  const actualNets = new Map()
+  const netBlocks = netlist.matchAll(
+    /^\t\t\(net\r?\n([\s\S]*?)(?=^\t\t\(net\r?$|^\t\)\r?$)/gm,
+  )
+  for (const match of netBlocks) {
+    const block = match[1]
+    const name = block.match(/\(name "([^"]+)"\)/)?.[1]
+    if (!name) continue
+    const nodes = new Set()
+    for (const match of block.matchAll(
+      /\(node\s+\(ref "([^"]+)"\)\s+\(pin "([^"]+)"\)/g,
+    )) {
+      nodes.add(`${match[1]}.${match[2]}`)
+    }
+    actualNets.set(name, nodes)
+  }
+
+  const connectivityIssues = []
+  for (const [name, expectedNodes] of expectedNets) {
+    const actualNodes = actualNets.get(name)
+    if (!actualNodes) {
+      connectivityIssues.push(
+        `${name}: named net missing; expected ${[...expectedNodes].sort().join(", ")}`,
+      )
+      continue
+    }
+    const missing = [...expectedNodes]
+      .filter((node) => !actualNodes.has(node))
+      .sort()
+    const unexpected = [...actualNodes]
+      .filter((node) => !expectedNodes.has(node))
+      .sort()
+    if (missing.length > 0 || unexpected.length > 0) {
+      connectivityIssues.push(
+        `${name}: missing [${missing.join(", ")}], unexpected [${unexpected.join(", ")}]`,
+      )
+    }
+  }
+  if (connectivityIssues.length > 0) {
+    console.error("KiCad named-net connectivity differs from Circuit JSON:")
+    for (const issue of connectivityIssues) console.error(`- ${issue}`)
+    process.exit(1)
+  }
+  console.log(
+    `${expectedNets.size} named nets exactly match Circuit JSON in KiCad netlist`,
+  )
+}
+
 process.exit(result.status ?? 2)
